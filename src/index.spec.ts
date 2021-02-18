@@ -1,22 +1,43 @@
 import assert = require('assert');
 import { createStore } from './';
 
-describe('createStore', () => {
-  describe('dispatch', () => {
-    it('xxx', () => {
-      const state = {
-        greet: {
-          message: '',
-        },
-      };
 
-      const updates = {
-        greet: (state, action) => {
-          return state;
-        },
-      };
-      const store = createStore(state, updates);
-      //assert(true === false);
-    });
+const GREET = 'hello@greet';
+
+type GreetAction = {
+  type: typeof GREET;
+};
+
+type GreetActions = GreetAction
+
+type GreetState = {
+  message: string
+}
+
+const greet = (): GreetAction => ({
+  type: GREET
+});
+
+describe('createStore', () => {
+  it('xxx', async () => {
+    const state = {
+      greet: {
+        message: '',
+      },
+    };
+
+    const updates = {
+      greet: (state: GreetState, action: GreetActions) => {
+        switch (action.type) {
+          case GREET: {
+            return { ...state, message: "hello" };
+          }
+        }
+        return state;
+      },
+    };
+    const store = createStore(state, updates);
+    await store.dispatch(greet());
+    assert(store.getState().greet.message === "hello");
   });
 });

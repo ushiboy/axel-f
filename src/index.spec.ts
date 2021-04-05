@@ -1,24 +1,95 @@
 import assert = require('assert');
-import { createStore } from './';
+import { createStore, combine } from './';
 
+describe('simple flow', () => {
+  const GREET = 'hello@greet';
+  const ASYNC_GREET = 'hello@asyncGreet';
 
-const GREET = 'hello@greet';
+  type GreetAction = {
+    type: typeof GREET;
+  };
+  type AsyncGreetAction = {
+    type: typeof ASYNC_GREET;
+    payload: {
+      name: string;
+    };
+  };
+  type GreetActions = GreetAction | AsyncGreetAction;
 
-type GreetAction = {
-  type: typeof GREET;
-};
+  type GreetState = {
+    message: string;
+  };
 
-type GreetActions = GreetAction
+  const greet = (): GreetAction => ({
+    type: GREET,
+  });
+  const asyncGreet = (name: string): AsyncGreetAction => ({
+    type: ASYNC_GREET,
+    payload: {
+      name,
+    },
+  });
+  it('xxx', async () => {
+    const state = {
+      message: '',
+    };
 
-type GreetState = {
-  message: string
-}
+    const update = (
+      state: GreetState,
+      action: GreetActions
+    ): GreetState | Promise<GreetState> => {
+      switch (action.type) {
+        case GREET: {
+          return { ...state, message: 'hello' };
+        }
+        case ASYNC_GREET: {
+          const { name } = action.payload;
+          return Promise.resolve({ ...state, message: `hello ${name}` });
+        }
+      }
+      return state;
+    };
+    const store = createStore(state, update);
+    await store.dispatch(greet());
+    assert(store.getState().message === 'hello');
 
-const greet = (): GreetAction => ({
-  type: GREET
+    await store.dispatch(asyncGreet('world'));
+    assert(store.getState().message === 'hello world');
+  });
 });
 
-describe('createStore', () => {
+describe('reduce flow', () => {
+  const GREET = 'hello@greet';
+  const ASYNC_GREET = 'hello@asyncGreet';
+
+  type GreetAction = {
+    type: typeof GREET;
+  };
+  type AsyncGreetAction = {
+    type: typeof ASYNC_GREET;
+    payload: {
+      name: string;
+    };
+  };
+  type GreetActions = GreetAction | AsyncGreetAction;
+
+  type GreetState = {
+    message: string;
+  };
+
+  type AppState = {
+    greet: GreetState;
+  };
+
+  const greet = (): GreetAction => ({
+    type: GREET,
+  });
+  const asyncGreet = (name: string): AsyncGreetAction => ({
+    type: ASYNC_GREET,
+    payload: {
+      name,
+    },
+  });
   it('xxx', async () => {
     const state = {
       greet: {
@@ -26,18 +97,31 @@ describe('createStore', () => {
       },
     };
 
-    const updates = {
-      greet: (state: GreetState, action: GreetActions) => {
-        switch (action.type) {
-          case GREET: {
-            return { ...state, message: "hello" };
-          }
+    const update = (
+      state: GreetState,
+      action: GreetActions
+    ): GreetState | Promise<GreetState> => {
+      switch (action.type) {
+        case GREET: {
+          return { ...state, message: 'hello' };
         }
-        return state;
-      },
+        case ASYNC_GREET: {
+          const { name } = action.payload;
+          return Promise.resolve({ ...state, message: `hello ${name}` });
+        }
+      }
+      return state;
     };
-    const store = createStore(state, updates);
+    const store = createStore(
+      state,
+      combine({
+        greet: update,
+      })
+    );
     await store.dispatch(greet());
-    assert(store.getState().greet.message === "hello");
+    assert(store.getState().greet.message === 'hello');
+
+    await store.dispatch(asyncGreet('world'));
+    assert(store.getState().greet.message === 'hello world');
   });
 });

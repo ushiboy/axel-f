@@ -1,5 +1,5 @@
 import assert = require('assert');
-import { createStore, combine } from './';
+import { createStore, combine, UpdateResult } from './';
 
 const GREET = 'hello@greet';
 const ASYNC_GREET = 'hello@asyncGreet';
@@ -55,7 +55,7 @@ const decrement = (): DecrementAction => ({
 const updateGreet = (
   state: GreetState,
   action: GreetActions
-): GreetState | Promise<GreetState> => {
+): UpdateResult<GreetState> => {
   switch (action.type) {
     case GREET: {
       return { ...state, message: 'hello' };
@@ -71,7 +71,7 @@ const updateGreet = (
 const updateCounter = (
   state: CountState,
   action: CountActions
-): CountState | Promise<CountState> => {
+): UpdateResult<CountState> => {
   switch (action.type) {
     case INCREMENT: {
       return { ...state, count: state.count + 1 };
@@ -83,57 +83,59 @@ const updateCounter = (
   return state;
 };
 
-describe('simple flow', () => {
-  it('xxx', async () => {
-    const state = {
-      message: '',
-    };
-
-    const store = createStore(state, updateGreet);
-    await store.dispatch(greet());
-    assert(store.getState().message === 'hello');
-
-    await store.dispatch(asyncGreet('world'));
-    assert(store.getState().message === 'hello world');
-  });
-});
-
-describe('reduce flow', () => {
-  type AppState = {
-    greet: GreetState;
-    counter: CountState;
-  };
-
-  it('xxx', async () => {
-    const state = {
-      greet: {
+describe('axel-f', () => {
+  context('Simple state case', () => {
+    it('will change its status according to the action taken', async () => {
+      const state = {
         message: '',
-      },
-      counter: {
-        count: 0,
-      },
+      };
+
+      const store = createStore(state, updateGreet);
+      await store.dispatch(greet());
+      assert(store.getState().message === 'hello');
+
+      await store.dispatch(asyncGreet('world'));
+      assert(store.getState().message === 'hello world');
+    });
+  });
+
+  context('Multiple state case', () => {
+    type AppState = {
+      greet: GreetState;
+      counter: CountState;
     };
 
-    const store = createStore(
-      state,
-      combine({
-        greet: updateGreet,
-        counter: updateCounter,
-      })
-    );
-    await store.dispatch(greet());
-    assert(store.getState().greet.message === 'hello');
+    it('will change its status according to the action taken', async () => {
+      const state = {
+        greet: {
+          message: '',
+        },
+        counter: {
+          count: 0,
+        },
+      };
 
-    await store.dispatch(asyncGreet('world'));
-    assert(store.getState().greet.message === 'hello world');
+      const store = createStore(
+        state,
+        combine({
+          greet: updateGreet,
+          counter: updateCounter,
+        })
+      );
+      await store.dispatch(greet());
+      assert(store.getState().greet.message === 'hello');
 
-    await store.dispatch(increment());
-    assert(store.getState().counter.count === 1);
+      await store.dispatch(asyncGreet('world'));
+      assert(store.getState().greet.message === 'hello world');
 
-    await store.dispatch(increment());
-    assert(store.getState().counter.count === 2);
+      await store.dispatch(increment());
+      assert(store.getState().counter.count === 1);
 
-    await store.dispatch(decrement());
-    assert(store.getState().counter.count === 1);
+      await store.dispatch(increment());
+      assert(store.getState().counter.count === 2);
+
+      await store.dispatch(decrement());
+      assert(store.getState().counter.count === 1);
+    });
   });
 });

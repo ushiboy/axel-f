@@ -1,9 +1,13 @@
 axel-f
 =====
 
-## Draft
+axel-f is a state management library.
 
-Simple case
+This is a library like redux, where update (or reducer as it is called in redux) can return a Promise.
+
+## Quick Sample
+
+Here is a simple usecase.
 
 ```typescript
 const initState = { count: 0 };
@@ -35,3 +39,19 @@ store.subscribe(() => {
   await store.dispatch({ type: 'decrement' });
 }());
 ```
+
+## API
+
+### method
+
+#### createStore
+
+It receives the initial state and update and creates a store.
+
+#### combine
+
+It takes a dictionary object of updates keyed by a group of states and creates a update.
+
+## License
+
+MIT

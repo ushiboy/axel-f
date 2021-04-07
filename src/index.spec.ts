@@ -1,127 +1,141 @@
 import assert = require('assert');
-import { createStore, combine } from './';
+import { createStore, combine, UpdateResult } from './';
 
-describe('simple flow', () => {
-  const GREET = 'hello@greet';
-  const ASYNC_GREET = 'hello@asyncGreet';
+const GREET = 'hello@greet';
+const ASYNC_GREET = 'hello@asyncGreet';
 
-  type GreetAction = {
-    type: typeof GREET;
+const INCREMENT = 'count@increment';
+const DECREMENT = 'count@ddecrement';
+
+type GreetAction = {
+  type: typeof GREET;
+};
+type AsyncGreetAction = {
+  type: typeof ASYNC_GREET;
+  payload: {
+    name: string;
   };
-  type AsyncGreetAction = {
-    type: typeof ASYNC_GREET;
-    payload: {
-      name: string;
-    };
-  };
-  type GreetActions = GreetAction | AsyncGreetAction;
+};
+type GreetActions = GreetAction | AsyncGreetAction;
 
-  type GreetState = {
-    message: string;
-  };
+type IncrementAction = {
+  type: typeof INCREMENT;
+};
+type DecrementAction = {
+  type: typeof DECREMENT;
+};
+type CountActions = IncrementAction | DecrementAction;
 
-  const greet = (): GreetAction => ({
-    type: GREET,
-  });
-  const asyncGreet = (name: string): AsyncGreetAction => ({
-    type: ASYNC_GREET,
-    payload: {
-      name,
-    },
-  });
-  it('xxx', async () => {
-    const state = {
-      message: '',
-    };
+type GreetState = {
+  message: string;
+};
 
-    const update = (
-      state: GreetState,
-      action: GreetActions
-    ): GreetState | Promise<GreetState> => {
-      switch (action.type) {
-        case GREET: {
-          return { ...state, message: 'hello' };
-        }
-        case ASYNC_GREET: {
-          const { name } = action.payload;
-          return Promise.resolve({ ...state, message: `hello ${name}` });
-        }
-      }
-      return state;
-    };
-    const store = createStore(state, update);
-    await store.dispatch(greet());
-    assert(store.getState().message === 'hello');
+type CountState = {
+  count: number;
+};
 
-    await store.dispatch(asyncGreet('world'));
-    assert(store.getState().message === 'hello world');
-  });
+const greet = (): GreetAction => ({
+  type: GREET,
+});
+const asyncGreet = (name: string): AsyncGreetAction => ({
+  type: ASYNC_GREET,
+  payload: {
+    name,
+  },
 });
 
-describe('reduce flow', () => {
-  const GREET = 'hello@greet';
-  const ASYNC_GREET = 'hello@asyncGreet';
+const increment = (): IncrementAction => ({
+  type: INCREMENT,
+});
 
-  type GreetAction = {
-    type: typeof GREET;
-  };
-  type AsyncGreetAction = {
-    type: typeof ASYNC_GREET;
-    payload: {
-      name: string;
-    };
-  };
-  type GreetActions = GreetAction | AsyncGreetAction;
+const decrement = (): DecrementAction => ({
+  type: DECREMENT,
+});
 
-  type GreetState = {
-    message: string;
-  };
+const updateGreet = (
+  state: GreetState,
+  action: GreetActions
+): UpdateResult<GreetState> => {
+  switch (action.type) {
+    case GREET: {
+      return { ...state, message: 'hello' };
+    }
+    case ASYNC_GREET: {
+      const { name } = action.payload;
+      return Promise.resolve({ ...state, message: `hello ${name}` });
+    }
+  }
+  return state;
+};
 
-  type AppState = {
-    greet: GreetState;
-  };
+const updateCounter = (
+  state: CountState,
+  action: CountActions
+): UpdateResult<CountState> => {
+  switch (action.type) {
+    case INCREMENT: {
+      return { ...state, count: state.count + 1 };
+    }
+    case DECREMENT: {
+      return { ...state, count: state.count - 1 };
+    }
+  }
+  return state;
+};
 
-  const greet = (): GreetAction => ({
-    type: GREET,
-  });
-  const asyncGreet = (name: string): AsyncGreetAction => ({
-    type: ASYNC_GREET,
-    payload: {
-      name,
-    },
-  });
-  it('xxx', async () => {
-    const state = {
-      greet: {
+describe('axel-f', () => {
+  context('Simple state case', () => {
+    it('will change its status according to the action taken', async () => {
+      const state = {
         message: '',
-      },
+      };
+
+      const store = createStore(state, updateGreet);
+      await store.dispatch(greet());
+      assert(store.getState().message === 'hello');
+
+      await store.dispatch(asyncGreet('world'));
+      assert(store.getState().message === 'hello world');
+    });
+  });
+
+  context('Multiple state case', () => {
+    type AppState = {
+      greet: GreetState;
+      counter: CountState;
     };
 
-    const update = (
-      state: GreetState,
-      action: GreetActions
-    ): GreetState | Promise<GreetState> => {
-      switch (action.type) {
-        case GREET: {
-          return { ...state, message: 'hello' };
-        }
-        case ASYNC_GREET: {
-          const { name } = action.payload;
-          return Promise.resolve({ ...state, message: `hello ${name}` });
-        }
-      }
-      return state;
-    };
-    const store = createStore(
-      state,
-      combine({
-        greet: update,
-      })
-    );
-    await store.dispatch(greet());
-    assert(store.getState().greet.message === 'hello');
+    it('will change its status according to the action taken', async () => {
+      const state = {
+        greet: {
+          message: '',
+        },
+        counter: {
+          count: 0,
+        },
+      };
 
-    await store.dispatch(asyncGreet('world'));
-    assert(store.getState().greet.message === 'hello world');
+      const store = createStore(
+        state,
+        combine({
+          greet: updateGreet,
+          counter: updateCounter,
+        })
+      );
+      await store.dispatch(greet());
+      assert(store.getState().greet.message === 'hello');
+
+      await store.dispatch(asyncGreet('world'));
+      assert(store.getState().greet.message === 'hello world');
+
+      await store.dispatch(increment());
+      assert(store.getState().counter.count === 1);
+
+      await store.dispatch(increment());
+      assert(store.getState().counter.count === 2);
+
+      await store.dispatch(decrement());
+      assert(store.getState().counter.count === 1);
+    });
   });
 });

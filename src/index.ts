@@ -8,10 +8,12 @@ export interface AnyAction extends Action {
   [props: string]: any;
 }
 
+export type UpdateResult<S> = S | Promise<S>;
+
 export type Update<S, A extends Action = AnyAction> = (
   state: S,
   action: A
-) => S | Promise<S>;
+) => UpdateResult<S>;
 
 export type StateUpdates<S, A extends Action = AnyAction> = {
   [K in keyof S]: Update<S[K], A>;
